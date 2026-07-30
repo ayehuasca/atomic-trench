@@ -1,0 +1,472 @@
+[
+  {
+    "signature": "8MzTCdgVwoZEVkTFpsP7kksf5NDLtRwDjVGv2nsRY6uRY7jhWFmTDmaJKFgziYgUkahfDDsLabz7NbCcxUuXyr6",
+    "timestamp": 1785328790,
+    "utc": "2026-07-29T12:39:50+00:00",
+    "slot": 435948977,
+    "transactionIndex": 67,
+    "quote_out_sol": 0.10607289000000002,
+    "quote_in_sol": 0.109450554,
+    "pnl_sol": 0.0032718069999999886,
+    "pnl_usd": 0.24010464528080713,
+    "mint": "GRtQ5uL4865792LD3uEX8mSdpbXKbPY7VbTBV9Xupump",
+    "symbol": "Bernhard",
+    "same_slot_large_buys_before": [
+      {
+        "signature": "YuuiZs2Dsnun4WqR19JkniARMnDxuxUuBFehhCmEofHfB7CMdNLDsRL8HF3RfarvSyxuKafaFfKu1oEyxaZFfK7",
+        "slot": 435948977,
+        "transactionIndex": 64,
+        "blockTime": 1785328790,
+        "owner": "6BcUPbToHBR5qB9jmfVgTLtU3QGCVoN5eN6fMPZrYjEw",
+        "token_received": 4699128.279320002,
+        "sol_spent_est": 6.113192065000021,
+        "usd": 448.6223705433359,
+        "slot_delta": 0,
+        "index_delta": -3
+      }
+    ],
+    "large_buys_prev_1_3_slots": []
+  },
+  {
+    "signature": "2iymfGMrEZGB6QiJhrGq6Usww3rMPeHA4bqSNiTJQM9FAEuHxZzCJLtKLrUAt2y8k11SMzv9Yn1H664sAGimxVg7",
+    "timestamp": 1785328728,
+    "utc": "2026-07-29T12:38:48+00:00",
+    "slot": 435948831,
+    "transactionIndex": 1370,
+    "quote_out_sol": 0.5496983980000001,
+    "quote_in_sol": 0.552876309,
+    "pnl_sol": 0.0030218579999998665,
+    "pnl_usd": 0.2217619019639422,
+    "mint": "G8ModkdDYTuUWLTVR4FAV8orFyZKXccZPhtUvvLBpump",
+    "symbol": "MarketCat",
+    "same_slot_large_buys_before": [
+      {
+        "signature": "5yXtyU5GTKY4SgfAkCF73Xf5MaaPDo7XXUgW7JkwuQNn19ZJ5MqjRfTqkcMoeb3HqGUzEbXw6vKq2wwTCodAnpUq",
+        "slot": 435948831,
+        "transactionIndex": 1369,
+        "blockTime": 1785328728,
+        "owner": "2Z9e2B7LLeK37A8BDeqys94sJeTg18Cmq4rP9QegiitT",
+        "token_received": 1890779.6698170006,
+        "sol_spent_est": 4.5043001350000225,
+        "usd": 330.5523174663041,
+        "slot_delta": 0,
+        "index_delta": -1
+      }
+    ],
+    "large_buys_prev_1_3_slots": []
+  },
+  {
+    "signature": "4CZVon7joBXZkitnVvMgtYM1SNPfygq3Vt1S2bDfDdaaMSSh3JqSVUsS2XPPkSD8JAQyUXUn93hJzAHLo6GTn6ca",
+    "timestamp": 1785328672,
+    "utc": "2026-07-29T12:37:52+00:00",
+    "slot": 435948698,
+    "transactionIndex": 167,
+    "quote_out_sol": 0.15054130801942128,
+    "quote_in_sol": 0.15185624647684576,
+    "pnl_sol": 0.0007574344574244957,
+    "pnl_usd": 0.055585042676224425,
+    "mint": "HmTi3CQfKfXWbn1tNoiAxH7GzMV7L3tDAmPWabZEBAGS",
+    "symbol": "P0",
+    "same_slot_large_buys_before": [
+      {
+        "signature": "Rf7wEVKbUwib9kxQr2JFUvVKLMyxYrCkL9HFKw3n7sawPa2kxmuHZYdjk9pAsqCdv4YSMvD2K8vAoVkiCyxDk7P",
+        "slot": 435948698,
+        "transactionIndex": 149,
+        "blockTime": 1785328672,
+        "owner": "BDpkHjAJrnVJmTTgCtUyN2JTQG6cCm2ps74NNEXdFYke",
+        "token_received": 206856.4906093981,
+        "sol_spent_est": 9.432179573788682,
+        "usd": 692.1894020000001,
+        "slot_delta": 0,
+        "index_delta": -18
+      }
+    ],
+    "large_buys_prev_1_3_slots": []
+  },
+  {
+    "signature": "4DMiWmnWaXA9BhsnvZPaHnpo2eBs9Ws83ymX12ZnWfPu2rpq3qy9eQug6rhY9igKi6aa18gzpcMBSHdfCrsioTfC",
+    "timestamp": 1785328664,
+    "utc": "2026-07-29T12:37:44+00:00",
+    "slot": 435948680,
+    "transactionIndex": 1154,
+    "quote_out_sol": 0.090733427,
+    "quote_in_sol": 0.091422753,
+    "pnl_sol": 0.00027992899999999013,
+    "pnl_usd": 0.020542853917975275,
+    "mint": "6xdEBWtpeubeZHe4b84Zxvckvwe1xotzSp19iUQqU3MF",
+    "symbol": "Gutjang",
+    "same_slot_large_buys_before": [],
+    "large_buys_prev_1_3_slots": []
+  },
+  {
+    "signature": "2JMyWdRWJ9ASJMgBtHBefLKjwDQPsurrU5EgwnMUELxD6qTvGXXMdirDyQ4ePEHVNh8CZvWT7jmQeH2D5GkKQxgc",
+    "timestamp": 1785328597,
+    "utc": "2026-07-29T12:36:37+00:00",
+    "slot": 435948519,
+    "transactionIndex": 126,
+    "quote_out_sol": 0.140629251,
+    "quote_in_sol": 0.145636111,
+    "pnl_sol": 0.005001860000000002,
+    "pnl_usd": 0.36706621785584015,
+    "mint": "GRtQ5uL4865792LD3uEX8mSdpbXKbPY7VbTBV9Xupump",
+    "symbol": "Bernhard",
+    "same_slot_large_buys_before": [],
+    "large_buys_prev_1_3_slots": [
+      {
+        "signature": "4agVFF3dwf2FcFNmSYp1EN7pXS8B77MxpyFsJMJHvULfHLAF7AC6NrGtCFBUUFpBMYMD3EKXu2GS1KSjh1Gnh4rG",
+        "slot": 435948518,
+        "transactionIndex": 1368,
+        "blockTime": 1785328597,
+        "owner": "6BcUPbToHBR5qB9jmfVgTLtU3QGCVoN5eN6fMPZrYjEw",
+        "token_received": 5220375.9197050035,
+        "sol_spent_est": 7.0574849909999955,
+        "usd": 517.9201983303661,
+        "slot_delta": -1,
+        "index_delta": 1242
+      }
+    ]
+  },
+  {
+    "signature": "z6ujKLvN77b4QwvzWBw6ea8vJHbEdCNCMWGPjLJrEa3qczSQ2mdJVkcrTfa9DR3rgaYvLHNeVRRi627vNjLvT57",
+    "timestamp": 1785328577,
+    "utc": "2026-07-29T12:36:17+00:00",
+    "slot": 435948476,
+    "transactionIndex": 1386,
+    "quote_out_sol": 0.7138843401665489,
+    "quote_in_sol": 0.7151799016163001,
+    "pnl_sol": 0.0011533524497512274,
+    "pnl_usd": 0.08463985828970638,
+    "mint": "J8PSdNP3QewKq2Z1JJJFDMaqF7KcaiJhR7gbr5KZpump",
+    "symbol": "TripleT",
+    "same_slot_large_buys_before": [],
+    "large_buys_prev_1_3_slots": []
+  },
+  {
+    "signature": "4ztnbkxPPBe8UTbv5EZmapnQyASy6jQv1PFq5E1rV9mnfGQdsgjonYZFhi7JXeKFMTxqGiDMTtmKF1mKTr6ywTvK",
+    "timestamp": 1785328577,
+    "utc": "2026-07-29T12:36:17+00:00",
+    "slot": 435948474,
+    "transactionIndex": 411,
+    "quote_out_sol": 0.175249308,
+    "quote_in_sol": 0.177673174,
+    "pnl_sol": 0.002128001999999997,
+    "pnl_usd": 0.15616543560388776,
+    "mint": "H3GtwGSrYRVqp7dtjkaDfjE2inydLkHwFkFJSPzrpump",
+    "symbol": "BNUT",
+    "same_slot_large_buys_before": [
+      {
+        "signature": "3BG8ZeB5jLhLbvGdp1xkPL5ngobyBQJuWZyRuq8KuyVpCAbAYarTc2Hsh4DB51xuRGYrfqSXpRPwRDsNEKD7sBK",
+        "slot": 435948474,
+        "transactionIndex": 410,
+        "blockTime": 1785328577,
+        "owner": "DEzRbg1HWUTJupoudSznJNaFBWxY66nwKQxoLGMtPZnp",
+        "token_received": 4136247.6122989953,
+        "sol_spent_est": 5.00014177700001,
+        "usd": 366.9401244389832,
+        "slot_delta": 0,
+        "index_delta": -1
+      }
+    ],
+    "large_buys_prev_1_3_slots": []
+  },
+  {
+    "signature": "4rzjqZFSUizEtixxVvAoigqbFtXWdVM8Cc8TVW6KRTAkNy6NVTL9MrVDHWsDzJSd6PrrNhAALnuNTX6zNzPxMXyK",
+    "timestamp": 1785328569,
+    "utc": "2026-07-29T12:36:09+00:00",
+    "slot": 435948455,
+    "transactionIndex": 1095,
+    "quote_out_sol": 2.3804979029999997,
+    "quote_in_sol": 2.390522341,
+    "pnl_sol": 0.009351979000000302,
+    "pnl_usd": 0.6863038071831981,
+    "mint": "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump",
+    "symbol": "CATE",
+    "same_slot_large_buys_before": [
+      {
+        "signature": "61tFkKjS6TtcD4gKwebshTszSWfuasGuKodwQVM338tBoS7EmVUCzi6DTWNW61K69xFou2XXNZ5WSZrDntYT74Qp",
+        "slot": 435948455,
+        "transactionIndex": 1094,
+        "blockTime": 1785328569,
+        "owner": "HMzvsEEmtzHhvZNw9uwbaG85HCTmFnkbhzUx16cy7ca3",
+        "token_received": 496345.22745899856,
+        "sol_spent_est": 37.49506304600027,
+        "usd": 2751.610596970245,
+        "slot_delta": 0,
+        "index_delta": -1
+      }
+    ],
+    "large_buys_prev_1_3_slots": []
+  },
+  {
+    "signature": "5jGMpPDuQ5mNZUALLm5LeYVcKAweMEMM2DEpDTbVePNtbfDymBVGTiL3y13QRgVG3hUn5cP3zcTAPkyuqeVNqxb3",
+    "timestamp": 1785328545,
+    "utc": "2026-07-29T12:35:45+00:00",
+    "slot": 435948397,
+    "transactionIndex": 1006,
+    "quote_out_sol": 10.290914964,
+    "quote_in_sol": 10.400348403,
+    "pnl_sol": 0.10894170700000003,
+    "pnl_usd": 7.994790009166409,
+    "mint": "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump",
+    "symbol": "CATE",
+    "same_slot_large_buys_before": [
+      {
+        "signature": "4GtHp9XfSWmpi1jS4umWpLWrqzz7wWARVxEgpgntKTLutinrkkxfEWMV65BVxv2pP1PXLr9sStXk7i1TRDDMmq3w",
+        "slot": 435948397,
+        "transactionIndex": 1005,
+        "blockTime": 1785328545,
+        "owner": "qhJ7kLjrE68sbDF11CpwMt3P9rqiwZtretM5ZzeAX6o",
+        "token_received": 737452.9390209997,
+        "sol_spent_est": 55.47935714999994,
+        "usd": 4071.404996965895,
+        "slot_delta": 0,
+        "index_delta": -1
+      }
+    ],
+    "large_buys_prev_1_3_slots": []
+  },
+  {
+    "signature": "W5P5RRumigtRHkdGSA5BdSKtWgFhFe3AQBUNs5cnAi3JTGu2JLUavBLvK1U7pTFtJb5QuV4tp5ybyCvejEd7fFq",
+    "timestamp": 1785328528,
+    "utc": "2026-07-29T12:35:28+00:00",
+    "slot": 435948358,
+    "transactionIndex": 586,
+    "quote_out_sol": 0.138870779,
+    "quote_in_sol": 0.141128702,
+    "pnl_sol": 0.002082384999999995,
+    "pnl_usd": 0.15281778899643964,
+    "mint": "3taE4SdY29sa3fnwyWqfshudJ95gMb9LoFTy5Uuppump",
+    "symbol": "CATJAK",
+    "same_slot_large_buys_before": [
+      {
+        "signature": "4wAW2LSKiNrMAJJdNqj6ixL2rbndNKFfphGVMKRy9csNtGxpwnMDZwUivMJL1U9h7wQkDUXpVMT7vndYGKS7y8BE",
+        "slot": 435948358,
+        "transactionIndex": 585,
+        "blockTime": 1785328528,
+        "owner": "4xjWi3uGwDJ31koYMz7PscaSHwVNTia76Bq4LeDbPWFE",
+        "token_received": 2042783.287936,
+        "sol_spent_est": 7.78127908,
+        "usd": 571.0365108132514,
+        "slot_delta": 0,
+        "index_delta": -1
+      }
+    ],
+    "large_buys_prev_1_3_slots": []
+  },
+  {
+    "signature": "PHnrDNBPtMT74DR31BSLYMd3khgT7qhyfNsVdDdia83QZMrojyheJxFbspNPJcmB2RNb9dVTeDjjcD3arfsyL9n",
+    "timestamp": 1785328524,
+    "utc": "2026-07-29T12:35:24+00:00",
+    "slot": 435948348,
+    "transactionIndex": 939,
+    "quote_out_sol": 0.380959463,
+    "quote_in_sol": 0.384122663,
+    "pnl_sol": 0.0024131159999999773,
+    "pnl_usd": 0.17708879564150232,
+    "mint": "Ge87EtsjwRQbHaqQmKRno69RFTwh9bfSsm99XNxTpump",
+    "symbol": "Jimothy",
+    "same_slot_large_buys_before": [
+      {
+        "signature": "3m9Q4qcozcxm9w8S2Sw12tsyhfiVCP42RptUnE3uPhVwCtVfY9RT1x8scme8Wmek38QzqQMgQqjacxM8FcbypAbu",
+        "slot": 435948348,
+        "transactionIndex": 938,
+        "blockTime": 1785328524,
+        "owner": "6NruiCPXaWcP57ToE2DNNLknmWv8urbDmCLAryHTVR1X",
+        "token_received": 61584.757326,
+        "sol_spent_est": 13.00307908,
+        "usd": 954.2432331924514,
+        "slot_delta": 0,
+        "index_delta": -1
+      }
+    ],
+    "large_buys_prev_1_3_slots": [
+      {
+        "signature": "5ECFK7Dh6xZitratbrUyb8qjST7w9gxcwUJayRg9qNV2WEBZt9YDFTKYrQFfQFbHwAD7eDv2FiJv768mJxattB82",
+        "slot": 435948347,
+        "transactionIndex": 810,
+        "blockTime": 1785328523,
+        "owner": "5PGhKctym6odbHGo2tKMST2AjmJsb2uZBQrKkn4ZuFT5",
+        "token_received": 30095.1639989987,
+        "sol_spent_est": 6.257756109999718,
+        "usd": 459.2313394540971,
+        "slot_delta": -1,
+        "index_delta": -129
+      },
+      {
+        "signature": "hPKD9RSFtXBVKgEbFqeZr6pHtcPkFQifjKvFD8VhZ2f5cYabgwhaqQhZDbzutZrVWfDhAfefMyYHuC5KVQoc3zW",
+        "slot": 435948347,
+        "transactionIndex": 801,
+        "blockTime": 1785328523,
+        "owner": "5PGhKctym6odbHGo2tKMST2AjmJsb2uZBQrKkn4ZuFT5",
+        "token_received": 31799.39127400145,
+        "sol_spent_est": 6.632424583000102,
+        "usd": 486.72673903226877,
+        "slot_delta": -1,
+        "index_delta": -138
+      },
+      {
+        "signature": "1WSMHDx6t8z2Y7yEzYks2qGckpipAvZC4cC2Xn6eaUZ7B2yF5EZyBBVm1SsGGcXtLkUzR8BmhAxTZf5SrKrePTp",
+        "slot": 435948347,
+        "transactionIndex": 791,
+        "blockTime": 1785328523,
+        "owner": "5PGhKctym6odbHGo2tKMST2AjmJsb2uZBQrKkn4ZuFT5",
+        "token_received": 59187.300682999194,
+        "sol_spent_est": 12.405628202000116,
+        "usd": 910.3987365168011,
+        "slot_delta": -1,
+        "index_delta": -148
+      },
+      {
+        "signature": "2x8URi8UMwiwhoFPHSxvK8Qwxv2bS8kq81svaApThBXN7V8QQfzx8FQYpysbxcdzwQ5pVYFyXLmfMXPyXfT2VyEA",
+        "slot": 435948347,
+        "transactionIndex": 785,
+        "blockTime": 1785328523,
+        "owner": "5PGhKctym6odbHGo2tKMST2AjmJsb2uZBQrKkn4ZuFT5",
+        "token_received": 107027.70287399739,
+        "sol_spent_est": 22.651642977999472,
+        "usd": 1662.3122030914624,
+        "slot_delta": -1,
+        "index_delta": -154
+      },
+      {
+        "signature": "4eoFUSR9fAz7xux668v7NBX1igo7Jb5Koo1mietkFNsU5xpzqfoFYvYwsdcRAKbLVFpxeFqmrHXNZbwyrzkwyaje",
+        "slot": 435948347,
+        "transactionIndex": 782,
+        "blockTime": 1785328523,
+        "owner": "FMZgtHeggiiW7FEuXaB9csNiR8rNc1kcLd5fjfHgffyW",
+        "token_received": 806495.951256,
+        "sol_spent_est": 166.93085015026855,
+        "usd": 12250.378020999999,
+        "slot_delta": -1,
+        "index_delta": -157
+      }
+    ]
+  },
+  {
+    "signature": "nF25vQuhuBa1s8bePEXbqW92XdMrt5Ve2DaJA1ZczuFHwK6FhB5Cpbj7Y1tSnSvNy7Dg45NLcuq4pgVmbXYScP8",
+    "timestamp": 1785328518,
+    "utc": "2026-07-29T12:35:18+00:00",
+    "slot": 435948336,
+    "transactionIndex": 1529,
+    "quote_out_sol": 1.186625329,
+    "quote_in_sol": 1.203769171,
+    "pnl_sol": 0.016734445000000077,
+    "pnl_usd": 1.2280730436410856,
+    "mint": "HBrfYZgeLKdSvBBGnGkvAK4563pq8oBGpgNFAaespump",
+    "symbol": "OnlyMarms",
+    "same_slot_large_buys_before": [
+      {
+        "signature": "348HLdon7QBuudAcwGoczzGxD6AuLrsAVMkSh14Nqpo3eaAXLx5WPEBAE9yz21X1tvkF5euqxpDgrR7GNic1k4QE",
+        "slot": 435948336,
+        "transactionIndex": 1520,
+        "blockTime": 1785328518,
+        "owner": "7VPi5uUiJGPaTdjERUze47rNGrwketfYPJyi8iB9YvPb",
+        "token_received": 2144959.0110529996,
+        "sol_spent_est": 6.904105047,
+        "usd": 506.6642663492593,
+        "slot_delta": 0,
+        "index_delta": -9
+      }
+    ],
+    "large_buys_prev_1_3_slots": []
+  },
+  {
+    "signature": "51fMdnNVxR3qHLwiuhzjz7Ejw4jt6gkCgya6FxqCmxpmWG1cPi3TNoLUC7jkUYrCiiGtUJavYRrHiQwbCMAbVyGW",
+    "timestamp": 1785328512,
+    "utc": "2026-07-29T12:35:12+00:00",
+    "slot": 435948322,
+    "transactionIndex": 880,
+    "quote_out_sol": 0.23313541799999998,
+    "quote_in_sol": 0.239188441,
+    "pnl_sol": 0.006046731000000019,
+    "pnl_usd": 0.4437450625490653,
+    "mint": "74dRE9m75gKQzb9WVkNYBqNjUdkgfLzWyNxtvwUDpump",
+    "symbol": "Oscar",
+    "same_slot_large_buys_before": [
+      {
+        "signature": "6U4UkK7Xdx1vcUeCFt1gV21Grfg844BNuN1ujazJe3YuY6bDUviNR2LygFYDdSC28Jscfb8Q9S9SUuzu9ZjjWWw",
+        "slot": 435948322,
+        "transactionIndex": 878,
+        "blockTime": 1785328512,
+        "owner": "B7fk61kSSy3VDc7zu44NyaQUPV9JeXXYX3rZ2BrRqZEP",
+        "token_received": 6361814.1053280085,
+        "sol_spent_est": 9.07719827599999,
+        "usd": 666.1387643594318,
+        "slot_delta": 0,
+        "index_delta": -2
+      }
+    ],
+    "large_buys_prev_1_3_slots": []
+  },
+  {
+    "signature": "3883RBZQ8Xh2xC7RS3QfR2ojGQ3x2rNUri18rLPrcNXNwnoxno6yWSPSdF54CQvKAVPkYandix3JkLtzVank5wfh",
+    "timestamp": 1785328498,
+    "utc": "2026-07-29T12:34:58+00:00",
+    "slot": 435948290,
+    "transactionIndex": 1134,
+    "quote_out_sol": 1.523589909,
+    "quote_in_sol": 1.532115413,
+    "pnl_sol": 0.008472524000000073,
+    "pnl_usd": 0.6217641718026613,
+    "mint": "Ge87EtsjwRQbHaqQmKRno69RFTwh9bfSsm99XNxTpump",
+    "symbol": "Jimothy",
+    "same_slot_large_buys_before": [
+      {
+        "signature": "31CfTSjP7RxyehBgraSV54SWh7s7CzQEqTra4oJxuYcJTTm272ZqJ7M5dAXPKURZNemTnciVWGC7s9nH38V41xuL",
+        "slot": 435948290,
+        "transactionIndex": 1132,
+        "blockTime": 1785328498,
+        "owner": "8SmAXCVGa57xiCtFTDicdhXG41nM5ooAqUF2Tb6weYbQ",
+        "token_received": 248522.62785599986,
+        "sol_spent_est": 49.981953872,
+        "usd": 3667.9728678611746,
+        "slot_delta": 0,
+        "index_delta": -2
+      }
+    ],
+    "large_buys_prev_1_3_slots": []
+  },
+  {
+    "signature": "3DPNDidNhVZC2X3hbiXHoNQ4DZsnaJgmembMzQSwbLJMQRemnkwjEMcRmQWeDKHaT4yx2dK9WYCUkw3KqdHV257n",
+    "timestamp": 1785328498,
+    "utc": "2026-07-29T12:34:58+00:00",
+    "slot": 435948290,
+    "transactionIndex": 1133,
+    "quote_out_sol": 1.24106268,
+    "quote_in_sol": 1.255717771,
+    "pnl_sol": 0.014604378000000064,
+    "pnl_usd": 1.0717560660628367,
+    "mint": "Ge87EtsjwRQbHaqQmKRno69RFTwh9bfSsm99XNxTpump",
+    "symbol": "Jimothy",
+    "same_slot_large_buys_before": [
+      {
+        "signature": "31CfTSjP7RxyehBgraSV54SWh7s7CzQEqTra4oJxuYcJTTm272ZqJ7M5dAXPKURZNemTnciVWGC7s9nH38V41xuL",
+        "slot": 435948290,
+        "transactionIndex": 1132,
+        "blockTime": 1785328498,
+        "owner": "8SmAXCVGa57xiCtFTDicdhXG41nM5ooAqUF2Tb6weYbQ",
+        "token_received": 248522.62785599986,
+        "sol_spent_est": 49.981953872,
+        "usd": 3667.9728678611746,
+        "slot_delta": 0,
+        "index_delta": -1
+      }
+    ],
+    "large_buys_prev_1_3_slots": []
+  },
+  {
+    "signature": "5aPq6tzS69vdHePV7T2KZ66LMu56Pum6tfieHayfw5Xxr3531NvPHunhCcWuqL2PMqd8XZ22qkMNadhBLkeJjVYJ",
+    "timestamp": 1785328490,
+    "utc": "2026-07-29T12:34:50+00:00",
+    "slot": 435948271,
+    "transactionIndex": 625,
+    "quote_out_sol": 0.245997064,
+    "quote_in_sol": 0.258307174,
+    "pnl_sol": 0.011696127999999984,
+    "pnl_usd": 0.8583313944248308,
+    "mint": "HB7MPRYpegrJaJtsZvrXAEHx5kxdehiQQUNneVLnpump",
+    "symbol": "RYDER",
+    "same_slot_large_buys_before": [],
+    "large_buys_prev_1_3_slots": []
+  }
+]

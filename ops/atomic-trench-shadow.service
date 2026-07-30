@@ -1,0 +1,20 @@
+[Unit]
+Description=Atomic Trench no-submit shadow observer
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/ubuntu/atomic-trench
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONPATH=/home/ubuntu/atomic-trench
+ExecStart=/home/ubuntu/atomic-trench/.venv/bin/python /home/ubuntu/atomic-trench/ops/shadow-loop.py
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ReadWritePaths=/home/ubuntu/atomic-trench/data
+
+[Install]
+WantedBy=default.target

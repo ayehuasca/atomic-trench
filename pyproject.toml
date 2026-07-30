@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wallet-a-backrunner"
+version = "0.1.0"
+description = "Dry-run-first Solana atomic-arbitrage/back-run detector"
+requires-python = ">=3.11"
+dependencies = ["requests>=2.32", "PyYAML>=6.0", "websocket-client>=1.8"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.9", "mypy>=1.13", "types-PyYAML", "types-requests"]
+
+[project.scripts]
+wallet-a-backrunner = "backrunner.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["backrunner*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
