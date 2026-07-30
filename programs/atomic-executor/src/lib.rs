@@ -178,7 +178,7 @@ fn parse_instruction(data: &[u8]) -> Result<ExecutorInstruction<'_>, ExecutorErr
 }
 
 fn is_token_program(owner: &Pubkey) -> bool {
-    owner == &TOKEN_PROGRAM
+    owner == &TOKEN_PROGRAM || owner == &TOKEN_2022_PROGRAM
 }
 
 fn validate_quote_mint(mint: &Pubkey) -> Result<(), ExecutorError> {
@@ -357,9 +357,6 @@ pub fn process_instruction(
         {
             continue;
         }
-        if account.owner == &TOKEN_2022_PROGRAM {
-            return Err(ExecutorError::InvalidTokenAccount.into());
-        }
         if is_token_program(account.owner) {
             if let Ok((_, authority, _)) = token_state(account) {
                 if authority == *user.key {
@@ -473,8 +470,8 @@ mod tests {
     }
 
     #[test]
-    fn token_2022_accounts_are_rejected_fail_closed() {
-        assert!(!is_token_program(&TOKEN_2022_PROGRAM));
+    fn token_2022_accounts_are_accepted() {
+        assert!(is_token_program(&TOKEN_2022_PROGRAM));
     }
 
     #[test]

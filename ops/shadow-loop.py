@@ -27,6 +27,40 @@ def log(msg: str) -> None:
     print(f"[{ts}] {msg}", flush=True)
 
 
+def run_shadow_direct(trigger: dict) -> dict | None:
+    """Run direct shadow simulation for a trigger event. Returns report dict or None."""
+    mint = trigger.get("mint", "")
+    pump_pool = trigger.get("pump_pool", "")
+    meteora_pool = trigger.get("meteora_pool", "")
+    direction = trigger.get("direction", "pump_to_meteora")
+    slot = trigger.get("slot", 0)
+    
+    if not mint or not pump_pool or not meteora_pool:
+        return None
+    
+    try:
+        env = os.environ.copy()
+        env.setdefault("PYTHONPATH", str(WORKDIR))
+        result = subprocess.run(
+            [str(VENV_PYTHON), "-m", "backrunner.cli", "--config", str(CONFIG),
+             "shadow-direct",
+             "--token-mint", mint,
+             "--pump-pool", pump_pool,
+             "--meteora-pool", meteora_pool,
+             "--direction", direction,
+             "--min-context-slot", str(max(0, slot - 10)),
+             "--executor-program-id", "",
+             "--lookup-table", str(CONFIG.parent / ".keys" / "ALT")],
+            capture_output=True, text=True, timeout=120, cwd=str(WORKDIR), env=env,
+        )
+        if result.returncode != 0:
+            return None
+        return json.loads(result.stdout)
+    except Exception as exc:
+        log(f"shadow-direct error: {exc}")
+        return None
+
+
 def run_observe() -> dict | None:
     """Run the processed-commitment observer. Returns report dict or None on error."""
     try:

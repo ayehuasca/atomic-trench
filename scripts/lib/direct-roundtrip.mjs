@@ -33,7 +33,7 @@ export async function tokenProgramForMint(connection, mint) {
     return TOKEN_PROGRAM_ID;
   }
   if (info.owner.equals(TOKEN_2022_PROGRAM_ID)) {
-    throw new Error("Token-2022 intermediate mints are unsupported until extensions are reviewed");
+    return TOKEN_2022_PROGRAM_ID;
   }
   throw new Error("intermediate mint is not owned by a supported token program");
 }
