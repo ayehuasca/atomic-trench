@@ -28,8 +28,8 @@ safety_margin_lamports: 100000
 # artifact is independently reviewed and deployed. A blank ID keeps the CLI
 # fail-closed. The gross floor covers failed-attempt reserve, desired wallet-net
 # profit, safety margin, maximum landed fee, and any configured direct tip.
-executor_program_id: ""
-direct_lookup_table_addresses: []
+executor_program_id: "2gMq7DRZgm4v7a972WA6ohQpZSXRFQZkmCpzcDTn8s6C"
+direct_lookup_table_addresses: ["AK5uWtuHpWShk71NsEMWQBQN8o7une1LdYqwVU1UKUEu"]
 direct_compute_unit_limit: 600000
 direct_compute_unit_price_micro_lamports: 800000
 direct_opportunity_slot_ttl: 2
