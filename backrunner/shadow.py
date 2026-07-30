@@ -243,6 +243,7 @@ def run_direct_shadow_route(
         "required_gross_profit_lamports": required_gross_profit_lamports,
         "valid_until_slot": request.valid_until_slot,
         "transaction": {
+            "unsigned_transaction_base64": compiled.transaction_base64,
             "instructions": compiled.instruction_count,
             "bytes": compiled.serialized_size,
             "accounts": compiled.account_count,
