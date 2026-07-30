@@ -20,4 +20,3 @@ transactions/
 programs/**/target/
 
 config.yaml
-config.yaml.example

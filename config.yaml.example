@@ -1,0 +1,71 @@
+# Phase 1 is intentionally incapable of signing or submitting.
+dry_run: true
+rpc_url: https://mainnet.helius-rpc.com/?api-key=YOUR_HELIUS_KEY_HERE
+commitment: finalized
+
+# Derived from the Wallet A diagnostic.
+minimum_buy_usd: 500
+maximum_transaction_gap: 3
+sol_price_usd: 73.385944
+replay_fixture: fixtures/wallet_a_replay.json
+
+# Wallet A sample economics.
+failed_attempt_reserve_lamports: 0
+minimum_net_profit_lamports: 8000000
+
+# Read-only Jupiter /build + Solana simulateTransaction settings.
+shadow_taker: xPnLubiTDu3kdLcDk1nTnCjhJhuM1TB4tB2hVnEd6AT
+shadow_input_lamports: 50000000
+slippage_bps: 100
+max_accounts: 50
+jito_tip_lamports: 100000
+safety_margin_lamports: 0
+
+# Direct Wallet-A-style Pump AMM <-> Meteora DLMM shadow execution.
+executor_program_id: "EBBCNegFwVq4Vas6aEnhVKmVExxZ1kwFhvSNqNxpuWzs"
+direct_lookup_table_addresses: ["AK5uWtuHpWShk71NsEMWQBQN8o7une1LdYqwVU1UKUEu", "9H3DzikVD7aW311UhCnxt4wduBwcF91pLrHLVPv7Cw6a", "6y6VSYUvRrRnvoR65d2nYDJVbztkUra2sVpTj1FbTimN"]
+direct_compute_unit_limit: 600000
+direct_compute_unit_price_micro_lamports: 50000
+direct_opportunity_slot_ttl: 10
+maximum_transaction_fee_lamports: 100000
+direct_tip_lamports: 0
+direct_tip_recipient:
+
+# $100 dedicated-wallet risk policy.
+risk_state_path: data/runtime-state.json
+pilot_risk_pct: 5
+validated_risk_pct: 10
+trade_cap_usd: 25
+wallet_reserve_usd: 10
+daily_loss_pct: 3
+maximum_drawdown_pct: 5
+
+# ── Strategy Dispatcher ──────────────────────────────────────────────────────
+strategies:
+  momentum:
+    enabled: true
+    buy_usd: 5
+    hold_seconds: 15
+    take_profit_pct: 3
+    stop_loss_pct: 5
+    max_positions: 3
+  snipe:
+    enabled: true
+    buy_usd: 5
+    hold_seconds: 30
+    take_profit_pct: 10
+    stop_loss_pct: 8
+    max_positions: 2
+  copytrade:
+    enabled: true
+    buy_usd: 5
+    hold_seconds: 20
+    take_profit_pct: 5
+    stop_loss_pct: 6
+    max_positions: 3
+    watch_wallets: []
+
+gmgn_api_key: YOUR_GMGN_KEY_HERE
+
+# Wallets to copy-trade (wallet addresses)
+copy_wallets: []
