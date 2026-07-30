@@ -33,6 +33,11 @@ export async function tokenProgramForMint(connection, mint) {
     return TOKEN_PROGRAM_ID;
   }
   if (info.owner.equals(TOKEN_2022_PROGRAM_ID)) {
+    // Accept Token-2022 mints (e.g. pump.fun tokens) as long as they have
+    // no TransferHook extension. The Meteora SDK's swap2 slices field
+    // encodes hook account counts; the executor validates they are zero.
+    // Transfer fee extensions are acceptable — fees are deducted from
+    // the swap output, not from the bot's capital.
     return TOKEN_2022_PROGRAM_ID;
   }
   throw new Error("intermediate mint is not owned by a supported token program");
@@ -72,7 +77,7 @@ export async function buildDirectRoundTrip({
   let secondAmountOffset;
   let fundingLamports;
   if (direction === DIRECTION_METEORA_TO_PUMP) {
-    firstInstruction = await buildMeteoraExactInputInstruction({
+    const first = await buildMeteoraExactInputInstruction({
       connection,
       pool: meteoraPool,
       user: owner,
@@ -81,6 +86,7 @@ export async function buildDirectRoundTrip({
       inputAmount,
       minimumOutput: 0,
     });
+    firstInstruction = first.instruction;
     const second = await buildPumpDynamicSellInstruction({
       connection,
       pool: pumpPool,
@@ -92,7 +98,7 @@ export async function buildDirectRoundTrip({
     secondAmountOffset = second.amountOffset;
     fundingLamports = BigInt(inputAmount);
   } else if (direction === DIRECTION_PUMP_TO_METEORA) {
-    firstInstruction = await buildPumpBuyQuoteInputInstruction({
+    const first = await buildPumpBuyQuoteInputInstruction({
       connection,
       pool: pumpPool,
       user: owner,
@@ -101,6 +107,7 @@ export async function buildDirectRoundTrip({
       quoteAmount: inputAmount,
       slippageBps,
     });
+    firstInstruction = first.instruction;
     if (firstInstruction.data.length < 24) {
       throw new Error("Pump buy instruction is too short for its max quote amount");
     }
@@ -111,6 +118,7 @@ export async function buildDirectRoundTrip({
       user: owner,
       inputMint: mint,
       outputMint: NATIVE_MINT,
+      estimatedInputAmount: first.expectedOutput,
     });
     secondInstruction = second.instruction;
     secondAmountOffset = second.amountOffset;

@@ -11,9 +11,13 @@ __pycache__/
 *.key
 *.keypair
 *-keypair.json
+.keys/
 *.jsonl
 logs/
 data/
 transactions/
 *.transaction.json
 programs/**/target/
+
+config.yaml
+config.yaml.example

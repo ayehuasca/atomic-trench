@@ -1,3 +1,5 @@
+import pytest
+
 from backrunner.detector import detect_large_buys
 
 MINT = "TokenMint111111111111111111111111111111111"
@@ -51,3 +53,57 @@ def test_detects_confirmed_large_buy_and_preserves_transaction_order() -> None:
     assert events[0].signature == "victim-signature"
     assert events[0].mint == MINT
     assert events[0].buy_sol == 5.0
+
+
+@pytest.mark.parametrize(
+    ("spent_lamports", "expected_count"),
+    [
+        (2_999_900_000, 0),  # $299.99
+        (3_000_000_000, 1),  # $300.00 is inclusive
+        (3_000_100_000, 1),  # $300.01
+    ],
+)
+def test_minimum_buy_threshold_is_inclusive(
+    spent_lamports: int, expected_count: int
+) -> None:
+    starting_lamports = 10_000_000_000
+    block = {
+        "blockTime": 1,
+        "transactions": [
+            {
+                "meta": {
+                    "err": None,
+                    "preBalances": [starting_lamports, 0],
+                    "postBalances": [starting_lamports - spent_lamports, 0],
+                    "preTokenBalances": [
+                        {
+                            "mint": MINT,
+                            "owner": BUYER,
+                            "uiTokenAmount": {"amount": "0", "decimals": 6},
+                        }
+                    ],
+                    "postTokenBalances": [
+                        {
+                            "mint": MINT,
+                            "owner": BUYER,
+                            "uiTokenAmount": {"amount": "1", "decimals": 6},
+                        }
+                    ],
+                },
+                "transaction": {
+                    "signatures": ["threshold-signature"],
+                    "accountKeys": [BUYER, "buyer-token-account"],
+                },
+            }
+        ],
+    }
+
+    events = detect_large_buys(
+        block=block,
+        slot=1,
+        trending_mints={MINT},
+        sol_price_usd=100.0,
+        minimum_buy_usd=300.0,
+    )
+
+    assert len(events) == expected_count

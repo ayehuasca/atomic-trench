@@ -53,6 +53,7 @@ def test_direct_shadow_simulates_exact_unsigned_transaction_without_submission()
             required_gross_profit_lamports=1_295_052,
             tip_lamports=100_000,
             tip_recipient="tip",
+            maximum_transaction_fee_lamports=700_000,
             rpc=rpc,
         )
 
@@ -121,6 +122,7 @@ def test_direct_shadow_rejects_wallet_baseline_change() -> None:
             required_gross_profit_lamports=1_295_052,
             tip_lamports=100_000,
             tip_recipient="tip",
+            maximum_transaction_fee_lamports=700_000,
             rpc=rpc,
         )
 

@@ -6,6 +6,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=/home/ubuntu/atomic-trench
+EnvironmentFile=/home/ubuntu/.config/atomic-trench/gmgn.env
 Environment=PYTHONUNBUFFERED=1
 Environment=PYTHONDONTWRITEBYTECODE=1
 Environment=PYTHONPATH=/home/ubuntu/atomic-trench

@@ -54,8 +54,6 @@ def _parser() -> argparse.ArgumentParser:
     direct.add_argument("--lookup-table", action="append", default=[])
     direct.add_argument("--trigger-signature")
     direct.add_argument("--evidence-path", default="data/shadow-evidence.json")
-    direct.add_argument("--submit", action="store_true", help="sign and submit if simulation approves")
-    direct.add_argument("--trader-keypair", default=".keys/atomic-trench-trader.json")
     direct.add_argument("--attempt-lock-path", default="data/active-attempt.lock")
     status = subcommands.add_parser(
         "shadow-evidence-status",
@@ -181,6 +179,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                 ),
                 tip_lamports=config.direct_tip_lamports,
                 tip_recipient=config.direct_tip_recipient,
+                maximum_transaction_fee_lamports=(
+                    config.maximum_transaction_fee_lamports
+                ),
                 rpc=rpc,
             )
 
@@ -219,38 +220,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
                 evidence.heartbeat()
                 report["evidence"] = asdict(evidence.summary())
-        if hasattr(args, "submit") and args.submit and report.get("shadow_approved"):
-            try:
-                import base64
-                import requests as reqs
-                from solders.keypair import Keypair
-                from solders.hash import Hash
-                from solders.transaction import Transaction
-                trader_path = Path(args.trader_keypair)
-                if trader_path.exists():
-                    trader_kp = Keypair.from_bytes(bytes(json.loads(trader_path.read_text())))
-                    tx_bytes = base64.b64decode(report["transaction"]["unsigned_transaction_base64"])
-                    bh_resp = reqs.post(
-                        config.rpc_url,
-                        json={"jsonrpc": "2.0", "id": 1, "method": "getLatestBlockhash",
-                              "params": [{"commitment": "confirmed"}]},
-                        timeout=15,
-                    )
-                    bh = bh_resp.json()["result"]["value"]["blockhash"]
-                    tx = Transaction.from_bytes(tx_bytes)
-                    tx.recent_blockhash = Hash.from_string(bh)
-                    submit_resp = reqs.post(
-                        config.rpc_url,
-                        json={"jsonrpc": "2.0", "id": 1, "method": "sendTransaction",
-                              "params": [base64.b64encode(bytes(tx)).decode(),
-                                         {"encoding": "base64", "skipPreflight": True}]},
-                        timeout=30,
-                    )
-                    submit_sig = submit_resp.json().get("result")
-                    report["submitted"] = True
-                    report["submission_signature"] = str(submit_sig) if submit_sig else None
-            except Exception as exc:
-                report["submission_error"] = str(exc)
         print(json.dumps(report, indent=2))
         return 0
     return 2

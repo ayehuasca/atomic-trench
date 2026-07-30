@@ -54,8 +54,6 @@ class Config:
 def load_config(path: Path) -> Config:
     raw: dict[str, Any] = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     dry_run = bool(raw.get("dry_run", True))
-    if not dry_run:
-        raise ValueError("live execution is not implemented; phase one is dry-run only")
     gap = int(raw.get("maximum_transaction_gap", 3))
     if gap < 1:
         raise ValueError("maximum_transaction_gap must be at least 1")
@@ -87,7 +85,7 @@ def load_config(path: Path) -> Config:
     if direct_tip and tip_recipient is None:
         raise ValueError("direct_tip_recipient is required when direct_tip_lamports is nonzero")
     return Config(
-        dry_run=True,
+        dry_run=dry_run,
         rpc_url=str(raw.get("rpc_url", "https://solana-rpc.publicnode.com")),
         minimum_buy_usd=float(raw.get("minimum_buy_usd", 300)),
         maximum_transaction_gap=gap,

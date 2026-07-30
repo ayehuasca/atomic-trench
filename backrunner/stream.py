@@ -99,25 +99,30 @@ class ProcessedLogStream:
             socket.close()
         self.sockets.clear()
 
-    def next_event(self) -> ProcessedLogEvent:
+    def poll_event(self) -> ProcessedLogEvent | None:
         if not self.sockets:
             raise RuntimeError("processed stream is not connected")
+        socket = self.sockets[0]
+        try:
+            raw = socket.recv()
+        except WebSocketTimeoutException:
+            return None
+        payload = json.loads(raw.decode() if isinstance(raw, bytes) else raw)
+        event = parse_log_notification(payload)
+        if event is None or event.signature in self.seen_signatures:
+            return None
+        if not any(
+            PUMP_AMM_PROGRAM_ID in line or METEORA_DLMM_PROGRAM_ID in line
+            for line in event.logs
+        ):
+            return None
+        self.seen_signatures.add(event.signature)
+        return event
+
+    def next_event(self) -> ProcessedLogEvent:
         while True:
-            for socket in self.sockets:
-                try:
-                    raw = socket.recv()
-                except WebSocketTimeoutException:
-                    continue
-                payload = json.loads(raw.decode() if isinstance(raw, bytes) else raw)
-                event = parse_log_notification(payload)
-                if event is None or event.signature in self.seen_signatures:
-                    continue
-                if not any(
-                    PUMP_AMM_PROGRAM_ID in line or METEORA_DLMM_PROGRAM_ID in line
-                    for line in event.logs
-                ):
-                    continue
-                self.seen_signatures.add(event.signature)
+            event = self.poll_event()
+            if event is not None:
                 return event
 
 

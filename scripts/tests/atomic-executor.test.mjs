@@ -92,6 +92,8 @@ test("rejects anything except one Pump and one Meteora leg", () => {
 
 
 test("accepts only the pinned Pump sell ABI template", () => {
+  // Sell is 24 bytes, buy is 25 (extra trailing flag byte).
+  // Test with 24-byte sell template.
   const data = Buffer.alloc(24);
   Buffer.from([51, 230, 133, 164, 1, 127, 131, 173]).copy(data);
   data.writeBigUInt64LE(1n, 8);
@@ -110,11 +112,16 @@ test("accepts only the pinned Pump sell ABI template", () => {
 
 
 test("accepts only the pinned Meteora swap2 ABI template", () => {
-  const data = Buffer.alloc(28);
+  const data = Buffer.alloc(32);
   Buffer.from([65, 75, 63, 76, 235, 91, 91, 136]).copy(data);
   data.writeBigUInt64LE(1n, 8);
   data.writeBigUInt64LE(0n, 16);
-  data.writeUInt32LE(0, 24);
+  // Vec<SliceAccountFlag>: u32 length=2, then (u8 accountsType=0, u8 length=0) x2
+  data.writeUInt32LE(2, 24);
+  data.writeUInt8(0, 28); // transferHookX
+  data.writeUInt8(0, 29); // length=0
+  data.writeUInt8(1, 30); // transferHookY
+  data.writeUInt8(0, 31); // length=0
 
   assert.equal(dynamicAmountOffset("Meteora", data), 8);
   assert.throws(
@@ -131,15 +138,13 @@ test("accepts only the pinned Meteora swap2 ABI template", () => {
 });
 
 
-test("rejects Token-2022 intermediate mints until extensions are reviewed", async () => {
+test("accepts Token-2022 intermediate mints (pump.fun tokens) without hooks", async () => {
   const connection = {
     async getAccountInfo() {
       return { owner: TOKEN_2022_PROGRAM_ID };
     },
   };
 
-  await assert.rejects(
-    tokenProgramForMint(connection, key(7)),
-    /Token-2022 intermediate mints are unsupported/,
-  );
+  const tokenProgram = await tokenProgramForMint(connection, key(7));
+  assert.ok(tokenProgram.equals(TOKEN_2022_PROGRAM_ID));
 });

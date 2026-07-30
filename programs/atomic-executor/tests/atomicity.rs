@@ -15,6 +15,7 @@ use solana_sdk::{
     transaction::Transaction,
 };
 use spl_token::state::Account as TokenAccount;
+use spl_token::native::NATIVE_MINT;
 use wallet_a_atomic_executor::process_instruction;
 
 const EXECUTOR: Pubkey = Pubkey::new_from_array([7_u8; 32]);
@@ -168,7 +169,12 @@ fn executor_data(
     let mut first_data = vec![65, 75, 63, 76, 235, 91, 91, 136];
     first_data.extend_from_slice(&first_input.to_le_bytes());
     first_data.extend_from_slice(&0_u64.to_le_bytes());
-    first_data.extend_from_slice(&0_u32.to_le_bytes());
+    // Vec<SliceAccountFlag>: u32 length=2, then (u8 accountsType, u8 length=0) x2
+    first_data.extend_from_slice(&2_u32.to_le_bytes());
+    first_data.push(0); // transferHookX
+    first_data.push(0); // length=0
+    first_data.push(1); // transferHookY
+    first_data.push(0); // length=0
     let mut second_data = vec![51, 230, 133, 164, 1, 127, 131, 173];
     second_data.extend_from_slice(&1_u64.to_le_bytes());
     second_data.extend_from_slice(&1_u64.to_le_bytes());
@@ -195,7 +201,7 @@ fn executor_data(
 async fn fixture() -> Fixture {
     let quote = Pubkey::new_unique();
     let intermediate = Pubkey::new_unique();
-    let quote_mint = Pubkey::new_unique();
+    let quote_mint = NATIVE_MINT;
     let intermediate_mint = Pubkey::new_unique();
     let meteora_pool_quote = Pubkey::new_unique();
     let meteora_pool_intermediate = Pubkey::new_unique();

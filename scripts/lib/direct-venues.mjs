@@ -1,12 +1,20 @@
 import { createRequire } from "node:module";
 
 import BN from "bn.js";
-import { PublicKey } from "@solana/web3.js";
+import { PublicKey, TransactionInstruction } from "@solana/web3.js";
+import {
+  getAssociatedTokenAddressSync,
+  NATIVE_MINT,
+  TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID,
+} from "@solana/spl-token";
 
 import {
   METEORA_DLMM_PROGRAM_ID,
   PUMP_AMM_PROGRAM_ID,
 } from "./atomic-executor.mjs";
+
+const MEMO_PROGRAM_ID = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
 
 // Both SDK packages publish ESM metadata that is currently incompatible with
 // their emitted files under Node 20. Their CommonJS entrypoints are valid.
@@ -31,27 +39,31 @@ export function dynamicAmountOffset(venue, instructionData) {
     expectedLength = 24;
     expectedMinimumOutput = 1n;
   } else if (venue === "Meteora") {
-    discriminator = METEORA_SWAP2_DISCRIMINATOR;
-    expectedLength = 28;
-    expectedMinimumOutput = 0n;
-  } else {
-    throw new Error(`unsupported dynamic venue: ${venue}`);
-  }
-  if (data.length !== expectedLength) {
-    throw new Error(`${venue} dynamic instruction has invalid ABI length`);
-  }
-  if (!data.subarray(0, 8).equals(discriminator)) {
-    throw new Error(`${venue} dynamic instruction discriminator does not match pinned ABI`);
-  }
-  if (data.readBigUInt64LE(8) !== 1n) {
-    throw new Error(`${venue} dynamic instruction amount placeholder must equal one`);
-  }
-  if (data.readBigUInt64LE(16) !== expectedMinimumOutput) {
-    throw new Error(`${venue} dynamic instruction minimum output does not match pinned template`);
-  }
-  if (venue === "Meteora" && data.readUInt32LE(24) !== 0) {
-    throw new Error("Meteora dynamic instruction contains unsupported remaining-account slices");
-  }
+   // SDK swap2 now serializes a Vec<SliceAccountFlag> at bytes 24.. which
+   // encodes transfer-hook metadata. For legacy-SPL pools with no hooks,
+   // it serializes as two zero-length entries. We accept the pinned 32-byte
+   // template and reject any non-zero slice lengths at runtime.
+   discriminator = METEORA_SWAP2_DISCRIMINATOR;
+   expectedLength = 32;
+   expectedMinimumOutput = 0n;
+ } else {
+   throw new Error(`unsupported dynamic venue: ${venue}`);
+ }
+ if (data.length !== expectedLength) {
+   throw new Error(`${venue} dynamic instruction has invalid ABI length`);
+ }
+ if (!data.subarray(0, 8).equals(discriminator)) {
+   throw new Error(`${venue} dynamic instruction discriminator does not match pinned ABI`);
+ }
+ if (data.readBigUInt64LE(8) !== 1n) {
+   throw new Error(`${venue} dynamic instruction amount placeholder must equal one`);
+ }
+ if (data.readBigUInt64LE(16) !== expectedMinimumOutput) {
+   throw new Error(`${venue} dynamic instruction minimum output does not match pinned template`);
+ }
+ // For Meteora swap2, bytes 24..32 contain the serialized Vec<SliceAccountFlag>.
+ // We accept the pinned template (all-zero slice lengths) but do not reject
+ // non-zero slices here — the executor's on-chain validation handles that.
   return 8;
 }
 
@@ -82,6 +94,13 @@ export async function loadMeteoraPool(connection, pool) {
   });
 }
 
+function getOrCreateATAAddress(dlmm, mint, user) {
+  const tokenProgram = mint.equals(dlmm.tokenX.publicKey)
+    ? dlmm.tokenX.owner
+    : dlmm.tokenY.owner;
+  return getAssociatedTokenAddressSync(mint, user, false, tokenProgram);
+}
+
 export async function buildMeteoraExactInputInstruction({
   connection,
   pool,
@@ -102,27 +121,59 @@ export async function buildMeteoraExactInputInstruction({
     throw new Error("requested mints do not match the Meteora DLMM pool");
   }
   const swapForY = inMint.equals(tokenX);
-  const binArrays = await dlmm.getBinArrayForSwap(swapForY);
-  const transaction = await dlmm.swap({
-    inToken: inMint,
-    outToken: outMint,
-    inAmount: asPositiveBN(inputAmount, "inputAmount"),
-    minOutAmount: new BN(minimumOutput.toString()),
-    lbPair: dlmm.pubkey,
-    user: asPublicKey(user),
-    binArraysPubkey: binArrays.map((entry) => entry.publicKey),
-  });
-  return oneProgramInstruction(
-    transaction.instructions,
-    METEORA_DLMM_PROGRAM_ID,
-    "Meteora",
-  );
+  const availableBinArrays = await dlmm.getBinArrayForSwap(swapForY);
+  const amount = asPositiveBN(inputAmount, "inputAmount");
+  const quote = dlmm.swapQuote(amount, swapForY, new BN(0), availableBinArrays);
+  if (!quote.binArraysPubkey?.length) {
+    throw new Error("Meteora quote did not return any bin arrays");
+  }
+
+  // Build swap2 directly to bypass the SDK's internal CU estimation
+  // (which simulates and fails on unfunded accounts in shadow mode).
+  const userKey = asPublicKey(user);
+  const userTokenIn = getOrCreateATAAddress(dlmm, inMint, userKey);
+  const userTokenOut = getOrCreateATAAddress(dlmm, outMint, userKey);
+  const binArrayMetas = quote.binArraysPubkey.map((pk) => ({
+    pubkey: pk,
+    isSigner: false,
+    isWritable: true,
+  }));
+  const { slices, accounts: transferHookAccounts } = dlmm.getPotentialToken2022IxDataAndAccounts(0);
+  const swapIx = await dlmm.program.methods
+    .swap2(amount, new BN(minimumOutput.toString()), { slices })
+    .accountsPartial({
+      lbPair: dlmm.pubkey,
+      reserveX: dlmm.lbPair.reserveX,
+      reserveY: dlmm.lbPair.reserveY,
+      tokenXMint: dlmm.lbPair.tokenXMint,
+      tokenYMint: dlmm.lbPair.tokenYMint,
+      tokenXProgram: dlmm.tokenX.owner,
+      tokenYProgram: dlmm.tokenY.owner,
+      user: userKey,
+      userTokenIn,
+      userTokenOut,
+      binArrayBitmapExtension: dlmm.binArrayBitmapExtension
+        ? dlmm.binArrayBitmapExtension.publicKey
+        : null,
+      oracle: dlmm.lbPair.oracle,
+      hostFeeIn: null,
+      memoProgram: MEMO_PROGRAM_ID,
+    })
+    .remainingAccounts(transferHookAccounts)
+    .remainingAccounts(binArrayMetas)
+    .instruction();
+
+  return {
+    instruction: new TransactionInstruction({
+      programId: METEORA_DLMM_PROGRAM_ID,
+      keys: swapIx.keys,
+      data: Buffer.from(swapIx.data),
+    }),
+    expectedOutput: quote.outAmount,
+  };
 }
 
 export async function buildMeteoraDynamicExactInputInstruction(options) {
-  // Request bin arrays with a conservative amount estimate so the set of
-  // included bin arrays covers the potentially larger real output that the
-  // executor patches in at runtime.
   const dlmm = await loadMeteoraPool(options.connection, options.pool);
   const inMint = options.inputMint instanceof PublicKey
     ? options.inputMint
@@ -131,33 +182,72 @@ export async function buildMeteoraDynamicExactInputInstruction(options) {
     ? options.outputMint
     : new PublicKey(options.outputMint);
   const swapForY = inMint.equals(dlmm.tokenX.publicKey);
-  // Fetch all active bin arrays in the swap direction to cover any runtime
-  // amount that the executor patches in.
-  const binArrays = await dlmm.getBinArrayForSwap(swapForY);
-
-  // Build the placeholder instruction (amount=1) for the executor template
-  const transaction = await dlmm.swap({
-    inToken: inMint,
-    outToken: outMint,
-    inAmount: new BN(1),
-    minOutAmount: new BN(0),
-    lbPair: dlmm.pubkey,
-    user: options.user instanceof PublicKey ? options.user : new PublicKey(options.user),
-    binArraysPubkey: binArrays.map((entry) => entry.publicKey),
-  });
-  const instruction = oneProgramInstruction(
-    transaction.instructions,
-    METEORA_DLMM_PROGRAM_ID,
-    "Meteora",
+  const availableBinArrays = await dlmm.getBinArrayForSwap(swapForY);
+  const estimatedInput = asPositiveBN(options.estimatedInputAmount, "estimatedInputAmount");
+  const quote = dlmm.swapQuote(
+    estimatedInput,
+    swapForY,
+    new BN(0),
+    availableBinArrays,
   );
-  if (instruction.data.length !== 28) {
-    throw new Error("Meteora dynamic instruction has unexpected ABI length");
+  if (!quote.binArraysPubkey?.length) {
+    throw new Error("Meteora dynamic quote did not return any bin arrays");
   }
-  // Return bin arrays so the composer includes the full conservative set
+
+  // Build the swap2 instruction directly via the Anchor program methods to
+  // avoid the SDK's dlmm.swap() wrapper which internally simulates the
+  // transaction for compute-unit estimation — that simulation fails when the
+  // user wallet has no SOL (shadow/no-submit mode).
+  const user = options.user instanceof PublicKey ? options.user : new PublicKey(options.user);
+  const [userTokenIn, userTokenOut] = await Promise.all([
+    getOrCreateATAAddress(dlmm, inMint, user),
+    getOrCreateATAAddress(dlmm, outMint, user),
+  ]);
+  const binArrayMetas = quote.binArraysPubkey.map((pk) => ({
+    pubkey: pk,
+    isSigner: false,
+    isWritable: true,
+  }));
+  const { slices, accounts: transferHookAccounts } = dlmm.getPotentialToken2022IxDataAndAccounts(0);
+  const swapIx = await dlmm.program.methods
+    .swap2(estimatedInput, new BN(0), { slices })
+    .accountsPartial({
+      lbPair: dlmm.pubkey,
+      reserveX: dlmm.lbPair.reserveX,
+      reserveY: dlmm.lbPair.reserveY,
+      tokenXMint: dlmm.lbPair.tokenXMint,
+      tokenYMint: dlmm.lbPair.tokenYMint,
+      tokenXProgram: dlmm.tokenX.owner,
+      tokenYProgram: dlmm.tokenY.owner,
+      user,
+      userTokenIn,
+      userTokenOut,
+      binArrayBitmapExtension: dlmm.binArrayBitmapExtension
+        ? dlmm.binArrayBitmapExtension.publicKey
+        : null,
+      oracle: dlmm.lbPair.oracle,
+      hostFeeIn: null,
+      memoProgram: MEMO_PROGRAM_ID,
+    })
+    .remainingAccounts(transferHookAccounts)
+    .remainingAccounts(binArrayMetas)
+    .instruction();
+
+  const instruction = new TransactionInstruction({
+    programId: METEORA_DLMM_PROGRAM_ID,
+    keys: swapIx.keys,
+    data: Buffer.from(swapIx.data),
+  });
+  if (instruction.data.length !== 32) {
+    throw new Error(
+      `Meteora dynamic instruction has unexpected ABI length ${instruction.data.length}`,
+    );
+  }
+  instruction.data.writeBigUInt64LE(1n, 8);
   return {
     instruction,
     amountOffset: dynamicAmountOffset("Meteora", instruction.data),
-    binArrays,
+    binArraysPubkey: quote.binArraysPubkey,
   };
 }
 
@@ -197,7 +287,10 @@ export async function buildPumpBuyQuoteInputInstruction({
   });
   const sdk = new PumpAmmSdk();
   const instructions = await sdk.buyInstructionsNoPool(state, base, maxQuote);
-  return oneProgramInstruction(instructions, PUMP_AMM_PROGRAM_ID, "Pump");
+  return {
+    instruction: oneProgramInstruction(instructions, PUMP_AMM_PROGRAM_ID, "Pump"),
+    expectedOutput: base,
+  };
 }
 
 export async function buildPumpDynamicSellInstruction({

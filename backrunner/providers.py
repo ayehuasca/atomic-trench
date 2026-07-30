@@ -25,11 +25,17 @@ class SimulationResult:
 
 
 def parse_trending_mints(payload: dict[str, Any]) -> set[str]:
+    # OpenAPI returns {code, data: {code, data: {rank: [...]}}}
+    # Public endpoint returns {code, data: {rank: [...]}}
     if int(payload.get("code", -1)) != 0:
         raise ValueError(f"GMGN rank error: {payload.get('message') or payload.get('reason')}")
+    inner = payload.get("data", {})
+    if isinstance(inner, dict) and "code" in inner and "data" in inner:
+        # Double-nested OpenAPI format
+        inner = inner["data"]
     return {
         str(row["address"])
-        for row in payload.get("data", {}).get("rank", [])
+        for row in inner.get("rank", [])
         if row.get("address")
     }
 
@@ -170,6 +176,14 @@ class SolanaRpc:
             config["minContextSlot"] = min_context_slot
         result = self.call("getBalance", [address, config])
         return int(result["value"])
+
+    def account_info(self, address: str) -> dict[str, Any] | None:
+        result = self.call(
+            "getAccountInfo",
+            [address, {"commitment": "confirmed", "encoding": "base64"}],
+        )
+        value = result.get("value") if isinstance(result, dict) else None
+        return value if isinstance(value, dict) else None
 
     def transaction(self, signature: str, *, commitment: str = "confirmed") -> dict[str, Any] | None:
         result = self.call(

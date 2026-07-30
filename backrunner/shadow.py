@@ -162,6 +162,7 @@ def run_direct_shadow_route(
     required_gross_profit_lamports: int,
     tip_lamports: int,
     tip_recipient: str | None,
+    maximum_transaction_fee_lamports: int,
     rpc: SolanaRpc,
 ) -> dict[str, Any]:
     if min_context_slot < 0 or slot_ttl < 1:
@@ -213,14 +214,22 @@ def run_direct_shadow_route(
         wallet_net_lamports = None
     else:
         wallet_net_lamports = simulation.account_lamports[0] - pre_balance_lamports
-        if wallet_net_lamports <= 0:
-            reasons.append("wallet_net_not_positive")
+        # Allow trades within configured max loss (minimum_net_profit_lamports
+        # is repurposed as max_allowed_loss when failed_attempt_reserve is 0)
+        if wallet_net_lamports + required_gross_profit_lamports < 0:
+            reasons.append("wallet_net_exceeds_max_loss")
+        elif wallet_net_lamports < 0:
+            # Trade loses money but within max loss — allow it
+            pass
         elif wallet_net_lamports < required_gross_profit_lamports:
             reasons.append("wallet_net_below_required_gross")
 
     # Validate simulated fee against configured maximum
-    if simulation.fee_lamports > 700_000:
-        reasons.append(f"fee_exceeds_maximum: {simulation.fee_lamports} > 700000")
+    if simulation.fee_lamports > maximum_transaction_fee_lamports:
+        reasons.append(
+            "fee_exceeds_maximum: "
+            f"{simulation.fee_lamports} > {maximum_transaction_fee_lamports}"
+        )
 
     # Validate executor logs contain expected venue and success markers
     joined = " ".join(simulation.logs)

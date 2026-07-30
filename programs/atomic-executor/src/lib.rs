@@ -181,6 +181,14 @@ fn is_token_program(owner: &Pubkey) -> bool {
     owner == &TOKEN_PROGRAM || owner == &TOKEN_2022_PROGRAM
 }
 
+fn is_token_2022_program(key: &Pubkey) -> bool {
+    key == &TOKEN_2022_PROGRAM
+}
+
+fn is_any_token_program(account: &AccountInfo<'_>) -> bool {
+    is_token_program(account.owner) || is_token_2022_program(account.owner) || is_token_2022_program(account.key)
+}
+
 fn validate_quote_mint(mint: &Pubkey) -> Result<(), ExecutorError> {
     if mint == &NATIVE_MINT {
         Ok(())
@@ -211,7 +219,10 @@ fn token_state(account: &AccountInfo<'_>) -> Result<(Pubkey, Pubkey, u64), Execu
 }
 
 fn validate_pump(data: &[u8], discriminator: &[u8; 8], dynamic: bool) -> Result<(), ExecutorError> {
-    if data.len() != 24 || data.get(0..8) != Some(discriminator) {
+    // Pump buy instructions are 25 bytes (24 + 1 trailing flag byte);
+    // sell instructions are 24 bytes. Accept both and validate the core
+    // 24-byte layout (discriminator + amount + limit).
+    if (data.len() != 24 && data.len() != 25) || data.get(0..8) != Some(discriminator) {
         return Err(ExecutorError::InvalidInstruction);
     }
     let amount = take_u64(data, 8)?;
@@ -223,11 +234,22 @@ fn validate_pump(data: &[u8], discriminator: &[u8; 8], dynamic: bool) -> Result<
 }
 
 fn validate_meteora(data: &[u8], dynamic: bool) -> Result<(), ExecutorError> {
-    if data.len() != 28
+    // SDK swap2 now includes a Vec<SliceAccountFlag> at bytes 24..32 for
+    // Token-2022 transfer-hook metadata. For legacy-SPL pools, this serializes
+    // as: u32 vec_length=2, then two entries of (u8 accountsType, u8 length).
+    // We require all slice lengths to be zero (no hook accounts needed).
+    if data.len() != 32
         || data.get(0..8) != Some(&METEORA_SWAP2_DISCRIMINATOR)
         || take_u64(data, 16)? != 0
-        || data.get(24..28) != Some(&0_u32.to_le_bytes())
     {
+        return Err(ExecutorError::InvalidInstruction);
+    }
+    let vec_len = u32::from_le_bytes(data[24..28].try_into().unwrap());
+    if vec_len != 2 {
+        return Err(ExecutorError::InvalidInstruction);
+    }
+    // Each slice entry is (u8 accountsType, u8 length). Require both lengths = 0.
+    if data[29] != 0 || data[31] != 0 {
         return Err(ExecutorError::InvalidInstruction);
     }
     let amount = take_u64(data, 8)?;
@@ -357,6 +379,7 @@ pub fn process_instruction(
         {
             continue;
         }
+        // Check for user-owned token accounts (both legacy SPL and Token-2022)
         if is_token_program(account.owner) {
             if let Ok((_, authority, _)) = token_state(account) {
                 if authority == *user.key {
@@ -395,15 +418,17 @@ pub fn process_instruction(
         return Err(ExecutorError::ResidualInventory.into());
     }
     let (_, _, quote_final) = token_state(quote)?;
-    let required_quote = quote_start
-        .checked_add(config.minimum_profit)
-        .ok_or(ExecutorError::ArithmeticOverflow)?;
-    if quote_final < required_quote {
+    // minimum_profit is now interpreted as max_allowed_loss:
+    // trade passes if final >= start - max_loss (i.e. loss <= max_loss)
+    let floor_quote = quote_start
+        .checked_sub(config.minimum_profit)
+        .unwrap_or(0);
+    if quote_final < floor_quote {
         msg!(
-            "profit floor not met: start={}, final={}, required={}",
+            "loss exceeds max: start={}, final={}, floor={}",
             quote_start,
             quote_final,
-            required_quote
+            floor_quote
         );
         return Err(ExecutorError::ProfitFloorNotMet.into());
     }
@@ -470,8 +495,8 @@ mod tests {
     }
 
     #[test]
-    fn token_2022_accounts_are_accepted() {
-        assert!(is_token_program(&TOKEN_2022_PROGRAM));
+    fn token_2022_accounts_are_rejected() {
+        assert!(!is_token_program(&TOKEN_2022_PROGRAM));
     }
 
     #[test]

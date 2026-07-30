@@ -1,4 +1,13 @@
-from backrunner.stream import normalize_transaction, parse_log_notification
+import json
+
+from websocket import WebSocketTimeoutException
+
+from backrunner.stream import (
+    PUMP_AMM_PROGRAM_ID,
+    ProcessedLogStream,
+    normalize_transaction,
+    parse_log_notification,
+)
 
 
 def test_processed_log_notification_is_parsed() -> None:
@@ -38,3 +47,41 @@ def test_transaction_response_is_normalized_for_large_buy_detector() -> None:
     assert block["transactions"][0]["transaction"]["accountKeys"] == [
         {"pubkey": "user"}
     ]
+
+
+class _FakeSocket:
+    def __init__(self, values: list[object]) -> None:
+        self.values = values
+
+    def recv(self) -> str:
+        value = self.values.pop(0)
+        if isinstance(value, Exception):
+            raise value
+        return str(value)
+
+
+def test_poll_event_returns_none_on_timeout_and_then_returns_venue_event() -> None:
+    stream = ProcessedLogStream("https://example.invalid")
+    notification = json.dumps(
+        {
+            "method": "logsNotification",
+            "params": {
+                "result": {
+                    "context": {"slot": 44},
+                    "value": {
+                        "signature": "venue-signature",
+                        "err": None,
+                        "logs": [f"Program {PUMP_AMM_PROGRAM_ID} invoke [1]"],
+                    },
+                }
+            },
+        }
+    )
+    stream.sockets = [  # type: ignore[list-item]
+        _FakeSocket([WebSocketTimeoutException(), notification])
+    ]
+
+    assert stream.poll_event() is None
+    event = stream.poll_event()
+    assert event is not None
+    assert event.signature == "venue-signature"

@@ -14,8 +14,8 @@ from solders.instruction import AccountMeta, Instruction
 from solders.keypair import Keypair
 from solders.pubkey import Pubkey
 from solders.system_program import (
-    create_account,
     CreateAccountParams,
+    create_account,
 )
 from solders.transaction import Transaction
 
@@ -48,11 +48,10 @@ def confirm_tx(sig: str, max_wait: int = 120) -> bool:
     for _ in range(max_wait):
         status = rpc("getSignatureStatuses", [[sig]])
         val = status.get("value", [None])[0]
-        if val:
-            if val.get("confirmationStatus") in ("confirmed", "finalized"):
-                if val.get("err"):
-                    raise RuntimeError(f"tx failed: {val['err']}")
-                return True
+        if val and val.get("confirmationStatus") in ("confirmed", "finalized"):
+            if val.get("err"):
+                raise RuntimeError(f"tx failed: {val['err']}")
+            return True
         time.sleep(1)
     return False
 
@@ -196,11 +195,11 @@ def main():
     # Verify
     acct = rpc("getAccountInfo", [str(program_id), {"commitment": "confirmed"}]).get("value")
     if acct and acct.get("executable"):
-        print(f"\n✅ SUCCESS! Program deployed.")
+        print("\n✅ SUCCESS! Program deployed.")
         print(f"Program ID: {program_id}")
         PROG_ID_PATH.write_text(str(program_id))
     else:
-        print(f"\n❌ Deployment may have failed.")
+        print("\n❌ Deployment may have failed.")
         print(f"Program ID: {program_id}")
 
 
