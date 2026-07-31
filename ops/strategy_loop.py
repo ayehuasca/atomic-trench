@@ -492,6 +492,7 @@ def main() -> None:
     last_heartbeat = 0
     iteration = 0
     seen_mints: set[str] = set()
+    total_signals: int = 0
 
     # ── Start momentum WebSocket watcher (replaces block polling) ──
     momentum_queue: Queue = Queue()
@@ -644,17 +645,20 @@ def main() -> None:
                         "confidence": signal.confidence,
                         "dry_run": True,
                     }) + "\n")
+                total_signals += 1
                 continue
 
             # Execute buy
             result = buy_token(signal.mint, signal.buy_sol, slippage, config)
             if not result.get("submitted"):
                 print(f"    ❌ Buy failed: {result.get('error', 'unknown')}")
-                risk.record_trade(signal.buy_sol)  # assume lost
+                risk.record_trade(signal.buy_sol)
+                total_signals += 1  # assume lost
                 continue
 
             sig = result.get("signature", "unknown")
             print(f"    ✅ Bought: {sig[:20]}...")
+            total_signals += 1
 
             # Create position
             strat_cfg = cfg.get(signal.strategy, {})
@@ -688,11 +692,11 @@ def main() -> None:
         # ── 5. Heartbeat ──
         if now - last_heartbeat >= heartbeat_interval:
             active = len(pos_mgr.active())
-            print(f"[{datetime.now(UTC)}] heartbeat: signals={len(signals)}, positions={active}, trades={risk.daily_trades}, sol=${sol_price:.2f}")
+            print(f"[{datetime.now(UTC)}] heartbeat: signals_this_iter={len(signals)}, positions={active}, trades={risk.daily_trades}, total_candidates={total_signals}, sol=${sol_price:.2f}")
             last_heartbeat = now
 
         # Brief sleep between iterations
-        time.sleep(1.5)
+        time.sleep(0.1)
 
 
 if __name__ == "__main__":
