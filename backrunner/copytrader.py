@@ -58,6 +58,27 @@ def _ws_url(rpc_url: str) -> str:
     return urlunparse((scheme, parsed.netloc, parsed.path, parsed.params, parsed.query, ""))
 
 
+def _parse_transaction_notification(payload: dict[str, Any]) -> dict | None:
+    """Parse a Helius transactionSubscribe notification."""
+    if payload.get("method") != "transactionNotification":
+        return None
+    result = payload.get("params", {}).get("result", {})
+    value = result.get("value", {})
+    signature = value.get("signature")
+    slot = result.get("context", {}).get("slot")
+    if not signature or slot is None:
+        return None
+    tx_data = value.get("transaction", {})
+    return {
+        "signature": str(signature),
+        "slot": int(slot),
+        "error": tx_data.get("meta", {}).get("err"),
+        "meta": tx_data.get("meta", {}),
+        "message": tx_data.get("transaction", {}).get("message", {}),
+        "logs": [str(line) for line in (tx_data.get("meta", {}).get("logMessages") or [])],
+    }
+
+
 class CopyTradeWatcher:
     """Watches specific wallet addresses via WebSocket and emits buy signals."""
 
@@ -101,14 +122,24 @@ class CopyTradeWatcher:
         ws_url = _ws_url(self.rpc_url)
         ws = create_connection(ws_url, timeout=15)
         try:
-            # Subscribe to logs mentioning watched wallets
+            # Helius transactionSubscribe supports all watched wallets in one request.
             ws.send(json.dumps({
                 "jsonrpc": "2.0",
                 "id": 1,
-                "method": "logsSubscribe",
+                "method": "transactionSubscribe",
                 "params": [
-                    {"mentions": self.watched_wallets},
-                    {"commitment": "processed"},
+                    {
+                        "accountInclude": self.watched_wallets,
+                        "failed": False,
+                        "vote": False,
+                    },
+                    {
+                        "commitment": "processed",
+                        "encoding": "jsonParsed",
+                        "transactionDetails": "full",
+                        "showRewards": False,
+                        "maxSupportedTransactionVersion": 0,
+                    },
                 ],
             }))
             confirmation = json.loads(ws.recv())
@@ -123,18 +154,18 @@ class CopyTradeWatcher:
                 except WebSocketTimeoutException:
                     continue
                 payload = json.loads(raw.decode() if isinstance(raw, bytes) else raw)
-                event = _parse_log_notification(payload)
+                event = _parse_transaction_notification(payload)
                 if event is None:
                     continue
                 sig = event["signature"]
                 if sig in self._seen_signatures:
                     continue
                 self._seen_signatures.add(sig)
-                # Trim seen set
                 if len(self._seen_signatures) > 10000:
                     self._seen_signatures.clear()
 
-                # Check if transaction involves Pump AMM or Meteora
+                if event.get("error"):
+                    continue
                 has_venue = any(
                     PUMP_AMM_PROGRAM in line or METEORA_DLMM_PROGRAM in line
                     for line in event["logs"]
@@ -142,31 +173,9 @@ class CopyTradeWatcher:
                 if not has_venue:
                     continue
 
-                # Transaction landed — fetch full details via REST
-                import requests
-                try:
-                    data = json.dumps({
-                        "jsonrpc": "2.0", "id": 1,
-                        "method": "getTransaction",
-                        "params": [sig, {"encoding": "jsonParsed", "maxSupportedTransactionVersion": 0}],
-                    }).encode()
-                    req = requests.post(
-                        self.rpc_url,
-                        data=data,
-                        headers={"Content-Type": "application/json"},
-                        timeout=15,
-                    )
-                    tx = req.json().get("result")
-                    if not tx:
-                        continue
-                except Exception:
-                    continue
-
-                meta = tx.get("meta", {})
-                if meta.get("err"):
-                    continue
-
-                msg = tx.get("transaction", {}).get("message", {})
+                # Full transaction is already present; avoid blocking REST fetch.
+                meta = event["meta"]
+                msg = event["message"]
                 account_keys = [
                     str(k.get("pubkey") if isinstance(k, dict) else k)
                     for k in msg.get("accountKeys", [])

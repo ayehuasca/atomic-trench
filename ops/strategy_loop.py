@@ -91,11 +91,13 @@ class Position:
     take_profit_pct: float
     stop_loss_pct: float
     hold_seconds: float
+    trailing_stop_pct: float = 5.0  # trailing stop % from peak
     closed: bool = False
     exit_sig: str | None = None
     exit_time: float | None = None
     exit_reason: str | None = None
     pnl_sol: float | None = None
+    peak_price_sol: float = 0.0     # highest price seen since entry
     _last_price_check: float = 0.0
 
 
@@ -144,14 +146,32 @@ class PositionManager:
             if price is None or price <= 0 or pos.entry_price_sol <= 0:
                 continue
 
+            # Track peak price for trailing stop
+            if price > pos.peak_price_sol:
+                pos.peak_price_sol = price
+
             change_pct = (price - pos.entry_price_sol) / pos.entry_price_sol * 100
 
-            if change_pct >= pos.take_profit_pct:
+            # Trailing stop: sell if price drops trailing_stop_pct from peak
+            if pos.peak_price_sol > 0 and pos.trailing_stop_pct > 0:
+                trail_from_peak = (price - pos.peak_price_sol) / pos.peak_price_sol * 100
+                if trail_from_peak <= -pos.trailing_stop_pct:
+                    pos.exit_reason = "trailing_stop"
+                    pos.exit_time = now
+                    pos.pnl_sol = pos.buy_sol * change_pct / 100
+                    pos.closed = True
+                    exited.append(pos)
+                    continue
+
+            # Fixed take-profit (if trailing stop is disabled)
+            if pos.take_profit_pct > 0 and change_pct >= pos.take_profit_pct:
                 pos.exit_reason = "take_profit"
                 pos.exit_time = now
                 pos.pnl_sol = pos.buy_sol * change_pct / 100
                 pos.closed = True
                 exited.append(pos)
+
+            # Hard stop-loss (floor)
             elif change_pct <= -pos.stop_loss_pct:
                 pos.exit_reason = "stop_loss"
                 pos.exit_time = now
@@ -456,6 +476,14 @@ def detect_copytrade_signals(
 
 # ── Risk Manager ─────────────────────────────────────────────────────────────
 
+def calculate_entry_size_sol(balance_sol: float, *, reserve_sol: float = 0.1, balance_pct: float = 0.05, minimum_sol: float = 0.05) -> float | None:
+    """Scale an entry from balance above the gas reserve, with a hard floor."""
+    available = balance_sol - reserve_sol
+    if available < minimum_sol:
+        return None
+    return max(minimum_sol, round(available * balance_pct, 9))
+
+
 class RiskManager:
     def __init__(self, config: dict):
         self.config = config
@@ -477,6 +505,9 @@ class RiskManager:
             self.daily_loss_lamports = 0
             self.daily_trades = 0
             self.daily_reset_time = now
+
+    def balance_sol(self) -> float:
+        return self._get_balance() / 1e9
 
     def can_trade(self, buy_sol: float) -> bool:
         self._check_daily_reset()
@@ -503,7 +534,7 @@ def main() -> None:
         api_key=config.get("gmgn_api_key"),
         fallback_sol_price_usd=config.get("sol_price_usd", 74),
     )
-    pos_mgr = PositionManager(max_positions=5)
+    pos_mgr = PositionManager(max_positions=10**9)
     risk = RiskManager(config)
 
     sol_price = config.get("sol_price_usd", 74)
@@ -526,6 +557,7 @@ def main() -> None:
     iteration = 0
     seen_mints: set[str] = set()
     total_signals: int = 0
+    trending_mints: set[str] = set()
 
     # ── Start momentum WebSocket watcher (replaces block polling) ──
     momentum_queue: Queue = Queue()
@@ -548,22 +580,13 @@ def main() -> None:
             rpc_url=config["rpc_url"],
             watched_wallets=copy_wallets,
             signal_queue=copy_queue,
-            minimum_buy_usd=buy_usd,
+            minimum_buy_usd=config.get("copytrade_minimum_buy_usd", 0),
         )
         copy_watcher.start()
 
-    # ── Start pump.fun creator sniper ──
+    # ── Snipe disabled: creator edge is unproven ──
     snipe_queue: Queue = Queue()
     sniper: PumpSniper | None = None
-    if cfg.get("snipe", {}).get("enabled", True):
-        scorer = CreatorScorer(rpc, cache_path=str(DATA_DIR / "creator-cache.json"), max_sigs_to_scan=200)
-        sniper = PumpSniper(
-            rpc_url=config["rpc_url"],
-            signal_queue=snipe_queue,
-            max_per_minute=10,
-            scorer=scorer,
-        )
-        sniper.start()
 
     while True:
         iteration += 1
@@ -574,8 +597,19 @@ def main() -> None:
         except Exception:
             pass
 
-        # ── 1. Get trending mints (shared across all strategies) ──
-        trending_mints: set[str] = set()
+        # ── 1. Refresh GMGN trending mints every 5 minutes ──
+        if iteration == 1 or iteration % 3000 == 0:
+            try:
+                new_trending = gmgn.trending_mints()
+                if new_trending:
+                    trending_mints = new_trending
+                    if momentum_watcher is not None:
+                        momentum_watcher.set_trending(trending_mints)
+                    print(f"  [momentum] GMGN trending refresh: {len(trending_mints)} mints")
+                else:
+                    print("  [momentum] GMGN trending refresh returned empty; retaining previous snapshot")
+            except Exception as e:
+                print(f"  [momentum] GMGN trending refresh failed; retaining previous snapshot: {e}")
 
         # ── 2. Detect signals from all enabled strategies ──
         signals: list[TradeSignal] = []
@@ -591,7 +625,14 @@ def main() -> None:
                     continue
                 seen_mints.add(ms.mint)
                 pump_pool = get_pump_pool(ms.mint)
-                entry_sol = min(ms.buy_sol / 10, 0.05)
+                entry_sol = calculate_entry_size_sol(
+                    risk.balance_sol(),
+                    reserve_sol=config.get("wallet_reserve_sol", 0.1),
+                    balance_pct=config.get("entry_balance_pct", 0.05),
+                    minimum_sol=config.get("entry_min_sol", 0.05),
+                )
+                if entry_sol is None:
+                    continue
                 signals.append(TradeSignal(
                     strategy="momentum",
                     mint=ms.mint,
@@ -605,7 +646,7 @@ def main() -> None:
         signals.sort(key=lambda s: (0 if s.confidence == "high" else 1, s.buy_sol), reverse=True)
         signals = signals[:3]
 
-        # ── Snipe: check PumpSniper queue for creator-based signals ──
+        # ── Snipe disabled ──
         if cfg.get("snipe", {}).get("enabled", True) and sniper is not None:
             while not snipe_queue.empty():
                 ss: SnipeSignal = snipe_queue.get_nowait()
@@ -629,11 +670,19 @@ def main() -> None:
                 continue
             seen_mints.add(cs.mint)
             pump_pool = get_pump_pool(cs.mint)
+            entry_sol = calculate_entry_size_sol(
+                risk.balance_sol(),
+                reserve_sol=config.get("wallet_reserve_sol", 0.1),
+                balance_pct=config.get("entry_balance_pct", 0.05),
+                minimum_sol=config.get("entry_min_sol", 0.05),
+            )
+            if entry_sol is None:
+                continue
             signals.append(TradeSignal(
                 strategy="copytrade",
                 mint=cs.mint,
                 pump_pool=pump_pool,
-                buy_sol=min(cs.buy_sol / 5, 0.02),
+                buy_sol=entry_sol,
                 source_id=cs.buyer,
                 confidence="high",
             ))
@@ -709,6 +758,7 @@ def main() -> None:
                 take_profit_pct=float(strat_cfg.get("take_profit_pct", 5)),
                 stop_loss_pct=float(strat_cfg.get("stop_loss_pct", 5)),
                 hold_seconds=float(strat_cfg.get("hold_seconds", 15)),
+                trailing_stop_pct=float(strat_cfg.get("trailing_stop_pct", 5)),
             )
             pos_mgr.open(pos)
             risk.record_trade(signal.buy_sol * 0.01)  # rough fee estimate
