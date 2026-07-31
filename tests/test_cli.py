@@ -35,7 +35,7 @@ def test_replay_cli_emits_machine_readable_shadow_report(capsys) -> None:
     assert exit_code == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload["mode"] == "DRY_RUN_REPLAY"
-    assert payload["tight_backrun_candidates"] == 10
+    assert payload["tight_backrun_candidates"] == 7
     assert payload["live_execution_enabled"] is False
 
 

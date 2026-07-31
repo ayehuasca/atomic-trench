@@ -137,6 +137,9 @@ class CreatorScorer:
         self._save_cache()
         return self._decide(profile, mint)
 
+    def cache_size(self) -> int:
+        return len(self._memory_cache)
+
     def _decide(self, profile: CreatorProfile, mint: str) -> SnipeDecision:
         """Apply hard filters and return a decision."""
         reasons = []
@@ -228,15 +231,19 @@ class CreatorScorer:
                 if not ix_data_raw:
                     continue
                 try:
-                    ix_data = bytes.fromhex(ix_data_raw) if isinstance(ix_data_raw, str) and all(c in "0123456789abcdefABCDEF" for c in ix_data_raw) else None
-                    if ix_data is None:
-                        ix_data = base58.b58decode(ix_data_raw) if len(ix_data_raw) == 88 else bytes.fromhex(ix_data_raw)
-                except Exception:
-                    try:
-                        import base64
-                        ix_data = base64.b64decode(ix_data_raw)
-                    except Exception:
+                    # jsonParsed: hex for Anchor, base58 for non-Anchor
+                    if isinstance(ix_data_raw, str):
+                        if all(c in "0123456789abcdefABCDEF" for c in ix_data_raw):
+                            ix_data = bytes.fromhex(ix_data_raw)
+                        elif len(ix_data_raw) == 88:
+                            ix_data = base58.b58decode(ix_data_raw)
+                        else:
+                            import base64
+                            ix_data = base64.b64decode(ix_data_raw)
+                    else:
                         continue
+                except Exception:
+                    continue
 
                 d = ix_data[:8]
                 if d == CREATE_DISCRIMINATOR or d == CREATE_V2_DISCRIMINATOR:

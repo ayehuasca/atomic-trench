@@ -43,7 +43,7 @@ for await (const chunk of process.stdin) chunks.push(chunk);
 const input = JSON.parse(Buffer.concat(chunks).toString("utf8"));
 
 const {action, rpcUrl, mint, pumpPool, buySol, slippageBps=100,
-       computeUnitPriceMicroLamports=50000, maxFeeLamports=100000} = input;
+       computeUnitPriceMicroLamports=50000, maxFeeLamports=100000, dryRun=false} = input;
 const keypairPath = input.keypairPath;
 
 // ── Setup ───────────────────────────────────────────────────────────────────
@@ -107,6 +107,16 @@ if (action === "buy") {
   const instructions = await sdk.sellInstructionsNoPool(state, new BN(1), new BN(1));
   ix = instructions.find(i => i.programId.equals(PUMP_AMM_PROGRAM_ID));
   if (!ix) throw new Error("Pump SDK did not produce a sell instruction");
+
+  // Setup: ensure WSOL ATA exists to receive SOL from the swap
+  setupIxs = [
+    createAssociatedTokenAccountIdempotentInstruction(owner, quoteAccount, owner, NATIVE_MINT, TOKEN_PROGRAM_ID),
+  ];
+  // Cleanup: close token ATA (reclaim ~0.002 SOL rent) + close WSOL ATA (unwrap to native SOL)
+  cleanupIxs = [
+    createCloseAccountInstruction(intermediateAccount, owner, owner, [], tokenProgram),
+    createCloseAccountInstruction(quoteAccount, owner, owner, [], TOKEN_PROGRAM_ID),
+  ];
 } else {
   throw new Error(`unknown action: ${action}`);
 }
@@ -121,7 +131,7 @@ const limitIx = ComputeBudgetProgram.setComputeUnitLimit({
 });
 
 // Build lookup tables for any ALTs
-const altAddresses = [];  // We don't use ALTs for standalone buys (no round-trip)
+const altAddresses = [];
 const lookupTableAccounts = await Promise.all(
   altAddresses.map(async (addr) => {
     const acc = await conn.getAccountInfo(new PublicKey(addr));
@@ -135,7 +145,8 @@ const lookupTableAccounts = await Promise.all(
 const validTables = lookupTableAccounts.filter(Boolean);
 
 const allIxs = [...setupIxs, priorityIx, limitIx, ix, ...cleanupIxs];
-const blockhash = (await conn.getLatestBlockhash("confirmed")).blockhash;
+const blockhashInfo = await conn.getLatestBlockhash("confirmed");
+const blockhash = blockhashInfo.blockhash;
 
 let message;
 if (validTables.length > 0) {
@@ -156,6 +167,34 @@ if (validTables.length > 0) {
 
 const tx = new VersionedTransaction(message.compileToV0Message());
 tx.sign([signer]);
+
+// ── Simulate (always) ──────────────────────────────────────────────────────
+
+const simulationResult = await conn.simulateTransaction(tx, {
+  commitment: "confirmed",
+  sigVerify: false,
+  replaceRecentBlockhash: true,
+  innerInstructions: true,
+});
+
+const simValue = simulationResult.value;
+const simError = simValue.err;
+const simLogs = (simValue.logs || []).join("\n");
+const simUnits = simValue.unitsConsumed || 0;
+
+if (dryRun) {
+  // Dry-run: return simulation details only, don't submit
+  process.stdout.write(JSON.stringify({
+    simulated: true,
+    submitted: false,
+    error: simError ? JSON.stringify(simError) : null,
+    logs: simLogs,
+    unitsConsumed: simUnits,
+    feeLamports: simValue.fee || 0,
+    transactionSize: tx.serialize().length,
+  }));
+  process.exit(0);
+}
 
 // ── Submit ──────────────────────────────────────────────────────────────────
 

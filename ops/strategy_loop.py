@@ -96,6 +96,7 @@ class Position:
     exit_time: float | None = None
     exit_reason: str | None = None
     pnl_sol: float | None = None
+    _last_price_check: float = 0.0
 
 
 class PositionManager:
@@ -113,15 +114,38 @@ class PositionManager:
     def active(self) -> list[Position]:
         return [p for p in self.positions if not p.closed]
 
-    def check_exits(self, current_price_sol: dict[str, float]) -> list[Position]:
+    def check_exits(self, config: dict) -> list[Position]:
+        """Check positions for TP/SL/timeout using on-chain pool price."""
         exited = []
         now = time.time()
         for pos in self.active():
-            if pos.mint not in current_price_sol:
+            elapsed = now - pos.entry_time
+
+            # Hard timeout — always fires, no price check needed
+            if elapsed >= pos.hold_seconds:
+                pos.exit_reason = "timeout"
+                pos.exit_time = now
+                pos.pnl_sol = 0  # unknown without price
+                pos.closed = True
+                exited.append(pos)
                 continue
-            price = current_price_sol[pos.mint]
+
+            # Minimum 3s hold before checking price (avoid noise)
+            if elapsed < 3:
+                continue
+
+            # Price check cooldown: at most once per 3s per position
+            if now - pos._last_price_check < 3:
+                continue
+            pos._last_price_check = now
+
+            # Fetch current pool price
+            price = get_pool_price(pos.pump_pool, config)
+            if price is None or price <= 0 or pos.entry_price_sol <= 0:
+                continue
+
             change_pct = (price - pos.entry_price_sol) / pos.entry_price_sol * 100
-            
+
             if change_pct >= pos.take_profit_pct:
                 pos.exit_reason = "take_profit"
                 pos.exit_time = now
@@ -134,16 +158,25 @@ class PositionManager:
                 pos.pnl_sol = pos.buy_sol * change_pct / 100
                 pos.closed = True
                 exited.append(pos)
-            elif (now - pos.entry_time) >= pos.hold_seconds:
-                pos.exit_reason = "timeout"
-                pos.exit_time = now
-                pos.pnl_sol = pos.buy_sol * change_pct / 100
-                pos.closed = True
-                exited.append(pos)
         return exited
 
 
 # ── Buy/Sell Execution ───────────────────────────────────────────────────────
+
+def get_pool_price(pump_pool: str, config: dict) -> float | None:
+    """Get current pool price (SOL per token) from Pump AMM via Node.js helper.
+    Returns price in SOL/token, or None on error.
+    """
+    payload = {
+        "rpcUrl": config["rpc_url"],
+        "pumpPool": pump_pool,
+    }
+    result = _run_node("scripts/get-pool-state.mjs", payload)
+    if result.get("error") or not result.get("price"):
+        return None
+    # price is in lamports/token from the script, convert to SOL/token
+    return float(result["price"]) / 1e9
+
 
 def get_pump_pool(mint: str) -> str:
     """Get Pump AMM pool address for a mint."""
@@ -606,9 +639,7 @@ def main() -> None:
             ))
 
         # ── 3. Check existing positions for exit conditions ──
-        active_mints = [p.mint for p in pos_mgr.active()]
-        prices = get_current_prices(active_mints)
-        exited = pos_mgr.check_exits(prices)
+        exited = pos_mgr.check_exits(config)
         for pos in exited:
             print(f"  [{pos.strategy}] EXIT {pos.exit_reason} {pos.mint[:16]}... pnl={pos.pnl_sol:+.6f} SOL")
             result = sell_token(pos.mint, pos.pump_pool, config)
@@ -660,6 +691,9 @@ def main() -> None:
             print(f"    ✅ Bought: {sig[:20]}...")
             total_signals += 1
 
+            # Fetch actual pool price at entry
+            entry_price = get_pool_price(signal.pump_pool, config)
+
             # Create position
             strat_cfg = cfg.get(signal.strategy, {})
             pos = Position(
@@ -671,7 +705,7 @@ def main() -> None:
                 entry_slot=rpc.latest_slot(),
                 entry_time=time.time(),
                 buy_sol=signal.buy_sol,
-                entry_price_sol=sol_price / signal.buy_sol if signal.buy_sol > 0 else 0,
+                entry_price_sol=entry_price or 0,
                 take_profit_pct=float(strat_cfg.get("take_profit_pct", 5)),
                 stop_loss_pct=float(strat_cfg.get("stop_loss_pct", 5)),
                 hold_seconds=float(strat_cfg.get("hold_seconds", 15)),

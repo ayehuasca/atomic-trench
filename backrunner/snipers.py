@@ -148,8 +148,12 @@ class PumpSniper:
         if len(self._seen_signatures) > MAX_SEEN:
             self._seen_signatures.clear()
 
-        if self._rate_limited():
+        # REST call rate limiter (separate from signal rate limiter)
+        now = time.time()
+        self._rest_calls = [t for t in getattr(self, '_rest_calls', []) if now - t < 60]
+        if len(self._rest_calls) >= self.max_per_minute * 3:
             return None
+        self._rest_calls.append(now)
 
         try:
             data = json.dumps({
@@ -176,26 +180,52 @@ class PumpSniper:
         is_create = False
         creator = None
 
-        for ix in instructions:
+        def _check_disc(ix: dict) -> tuple[bool, str | None]:
+            """Check a single instruction for create discriminator. Returns (is_create, creator)."""
             prog = str(ix.get("programId", ix.get("program", "")))
             if prog != PUMP_PROGRAM:
-                continue
+                return False, None
             ix_data_raw = ix.get("data") or ix.get("data")
             if not ix_data_raw:
-                continue
+                return False, None
             try:
-                ix_data = bytes.fromhex(ix_data_raw) if isinstance(ix_data_raw, str) and all(c in "0123456789abcdefABCDEF" for c in ix_data_raw) else None
-                if ix_data is None:
-                    import base64
-                    ix_data = base64.b64decode(ix_data_raw)
+                # jsonParsed: hex for Anchor, base58 for non-Anchor
+                if isinstance(ix_data_raw, str):
+                    if all(c in "0123456789abcdefABCDEF" for c in ix_data_raw):
+                        ix_data = bytes.fromhex(ix_data_raw)
+                    elif len(ix_data_raw) == 88:
+                        ix_data = base58.b58decode(ix_data_raw)
+                    else:
+                        import base64
+                        ix_data = base64.b64decode(ix_data_raw)
+                else:
+                    return False, None
             except Exception:
-                continue
-
+                return False, None
             d = ix_data[:8]
             if d == CREATE_DISCRIMINATOR or d == CREATE_V2_DISCRIMINATOR:
+                return True, parse_creator_from_instruction(ix_data)
+            return False, None
+
+        # Check top-level instructions
+        for ix in instructions:
+            found, c = _check_disc(ix)
+            if found:
                 is_create = True
-                creator = parse_creator_from_instruction(ix_data)
+                creator = c
                 break
+
+        # Check inner instructions (CPI) if not found in top-level
+        if not is_create:
+            for inner in meta.get("innerInstructions", []):
+                for ix in inner.get("instructions", []):
+                    found, c = _check_disc(ix)
+                    if found:
+                        is_create = True
+                        creator = c
+                        break
+                if is_create:
+                    break
 
         if not is_create:
             return None
@@ -220,10 +250,15 @@ class PumpSniper:
         # Score the creator if a scorer is available
         if self.scorer is not None and creator and creator != "unknown":
             decision = self.scorer.score(creator, mint)
+            cache_size = self.scorer.cache_size() if hasattr(self.scorer, 'cache_size') else '?'
             if not decision.approved:
-                print(f"  [sniper] ⛔ rejected {mint[:16]}... creator={creator[:12]}... reason={decision.reason}")
-                self._signals_this_minute.append(time.time())  # still count toward rate limit
+                print(f"  [sniper] ⛔ rejected {mint[:16]}... creator={creator[:12]}... reason={decision.reason} cache={cache_size}")
+                self._signals_this_minute.append(time.time())
                 return None
+            else:
+                print(f"  [sniper] ✅ approved {mint[:16]}... creator={creator[:12]}... score={decision.profile.score:.2f if decision.profile else '?'} cache={cache_size}")
+        elif creator:
+            print(f"  [sniper] ⚠️ no scorer — emitting anyway {mint[:16]}... creator={creator[:12]}")
 
         # Rate limit tracking
         self._signals_this_minute.append(time.time())
@@ -271,11 +306,9 @@ class PumpSniper:
                     if not sig:
                         continue
 
-                    # Fast check: look for "create" in the log lines
-                    logs = [str(l) for l in (value.get("logs") or [])]
-                    has_create = any("Program log: CreateEvent" in l or "create" in l.lower() for l in logs)
-                    if not has_create:
-                        continue
+                    # No fast-check — pump.fun emits events via Program data: (base64),
+                    # not Program log:. The _check_tx discriminator check handles filtering.
+                    # Cost: one REST call per notification mentioning Pump program.
 
                     signal = self._check_tx(sig)
                     if signal:
@@ -328,10 +361,16 @@ class PumpSniper:
                             if not ix_data_raw:
                                 continue
                             try:
-                                ix_data = bytes.fromhex(ix_data_raw) if isinstance(ix_data_raw, str) and all(c in "0123456789abcdefABCDEF" for c in ix_data_raw) else None
-                                if ix_data is None:
-                                    import base64
-                                    ix_data = base64.b64decode(ix_data_raw)
+                                if isinstance(ix_data_raw, str):
+                                    if all(c in "0123456789abcdefABCDEF" for c in ix_data_raw):
+                                        ix_data = bytes.fromhex(ix_data_raw)
+                                    elif len(ix_data_raw) == 88:
+                                        ix_data = base58.b58decode(ix_data_raw)
+                                    else:
+                                        import base64
+                                        ix_data = base64.b64decode(ix_data_raw)
+                                else:
+                                    continue
                             except Exception:
                                 continue
 
